@@ -1,0 +1,71 @@
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+config.js
+
+# API Keys and sensitive data
+**/config.js
+**/api-config.js
+**/*-config.js
+
+# Documentation that might contain sensitive data
+**/SECURITY_RECOVERY.md
+**/MANUAL_CLEANUP_GUIDE.md
+**/OBLITERATION_GUIDE.md
+security-*.ps1
+security-*.sh
+security-*.bat
+cleanup-*.ps1
+
+# Backup directories
+**/SECURITY_BACKUP_*
+**/enhanced-gemini-chat-backup*
+**/backup*
+
+# Any files that might contain API keys
+**/*api*key*
+**/*secret*
+**/*credential*
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+node_modules/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp

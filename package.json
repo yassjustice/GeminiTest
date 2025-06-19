@@ -1,0 +1,35 @@
+{
+  "name": "enhanced-gemini-chat",
+  "version": "1.0.0",
+  "description": "A beautiful, feature-rich web interface for interacting with Google's Gemini AI models",
+  "main": "enhanced-gemini-chat.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "serve": "npx http-server . -p 8000 -o",
+    "dev": "npx live-server --port=8000"
+  },
+  "keywords": [
+    "gemini",
+    "ai",
+    "chat",
+    "google-ai",
+    "markdown",
+    "javascript",
+    "html5",
+    "css3"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/enhanced-gemini-chat.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/enhanced-gemini-chat/issues"
+  },
+  "homepage": "https://github.com/yourusername/enhanced-gemini-chat#readme",
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "live-server": "^1.2.2"
+  }
+}
