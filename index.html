@@ -1,17 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Enhanced Gemini Chat Interface</title>
-    <!-- External Libraries -->
+  <meta charset="UTF-8" />  <title>Enhanced Gemini Chat Interface</title>
+  
+  <!-- External Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
-  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mtml-chtml.js"></script>
   
-  <!-- Configuration -->
-  <script src="config.js"></script>
+  <!-- MathJax Configuration -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: {
+        fontCache: 'global'
+      },
+      startup: {
+        ready() {
+          MathJax.startup.defaultReady();
+        }
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
   
   <!-- Code Highlighting Theme -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" id="highlight-theme">
@@ -667,19 +681,7 @@
     }
     
     let currentModel = null;
-    let currentModelName = '';
-    let conversationHistory = [];
-
-    // MathJax Configuration
-    window.MathJax = {
-      tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$'], ['\\[', '\\]']]
-      },
-      svg: {
-        fontCache: 'global'
-      }
-    };
+    let currentModelName = '';    let conversationHistory = [];
 
     // Configure marked for enhanced Markdown
     marked.setOptions({
@@ -713,9 +715,11 @@
           }
         }
       }
-      
-      currentModel = modelName;
+        currentModel = modelName;
       currentModelName = displayName;
+      
+      // Clear conversation history when switching models
+      conversationHistory = [];
       
       // Update UI
       document.getElementById('current-model').textContent = `💬 Chatting with ${displayName}`;
@@ -723,35 +727,18 @@
       document.getElementById('send-btn').disabled = false;
       document.getElementById('chat-input').placeholder = `Chat with ${displayName} using Markdown... (Ctrl+Enter to send)`;
       
+      // Clear chat messages
+      document.getElementById('chat-messages').innerHTML = '';
+      
       // Highlight selected model
       document.querySelectorAll('.model-buttons button').forEach(btn => {
         btn.classList.remove('active');
       });
       event.target.classList.add('active');
-      
-      // Add welcome message if chat is empty
+        // Add model-specific welcome message
       const chatMessages = document.getElementById('chat-messages');
-      if (!chatMessages.querySelector('.message')) {
-        const welcomeMessage = `# Hello! I'm ${displayName} 🤖
-
-I'm ready to help you with anything! Here are some things you can try:
-
-## 💬 **Chat Features**
-- **Markdown formatting** - Use headers, lists, bold, italic text
-- **Code examples** - I'll highlight syntax automatically
-- **Math formulas** - Use $$\\LaTeX$$ for equations like $$E = mc^2$$
-- **Images** - I can display images from URLs
-
-## 🚀 **Example Prompts**
-- "Explain quantum computing with examples"
-- "Write a Python function to sort a list"
-- "Create a table comparing different programming languages"
-- "Show me the quadratic formula in LaTeX"
-
-What would you like to explore today?`;
-
-        addMessage('ai', welcomeMessage);
-      }
+      const welcomeMessage = getModelWelcomeMessage(modelName, displayName);
+      addMessage('ai', welcomeMessage);
     }
 
     function addMessage(sender, content, time = null) {
@@ -791,10 +778,13 @@ What would you like to explore today?`;
       if (sender === 'ai' && content.includes('CANVAS:')) {
         processCanvasCommands(messageDiv, content);
       }
-      
-      // Re-render MathJax
+        // Re-render MathJax
       if (window.MathJax && sender === 'ai') {
-        MathJax.typesetPromise([messageDiv]).catch((err) => console.log('MathJax error:', err));
+        MathJax.startup.promise.then(() => {
+          if (MathJax.typesetPromise) {
+            MathJax.typesetPromise([messageDiv]).catch((err) => console.log('MathJax error:', err));
+          }
+        }).catch((err) => console.log('MathJax startup error:', err));
       }
       
       chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -891,37 +881,38 @@ What would you like to explore today?`;
     }
 
     async function sendMessage() {
-      const input = document.getElementById('chat-input');
-      const message = input.value.trim();
+      const messageInput = document.getElementById('chat-input');
+      const message = messageInput.value.trim();
       
-      if (!message || !currentModel) return;
+      if (!message) return;
       
-      // Ensure API key is available
+      if (!currentModel) {
+        showError('Please select a model first.');
+        return;
+      }
+      
       if (!apiKey) {
-        apiKey = localStorage.getItem('GOOGLE_AI_API_KEY');
+        apiKey = prompt('Please enter your Gemini API key:');
         if (!apiKey) {
-          addMessage('ai', '❌ **Error**: API key is required. Please select a model first to configure your key.');
+          showError('API key is required to send messages.');
           return;
         }
       }
       
-      // Add user message
+      // Add user message to conversation
       addMessage('user', message);
       conversationHistory.push({role: 'user', content: message});
-      input.value = '';
+      messageInput.value = '';
       
       // Show typing indicator
       showTyping();
       
       // Disable input during API call
-      input.disabled = true;
-      document.getElementById('send-btn').disabled = true;
-
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
-
-      // Build conversation context (last 10 messages for context)
+      messageInput.disabled = true;
+      document.getElementById('send-btn').disabled = true;      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;      // Build conversation context (last 10 messages for context)
       const recentHistory = conversationHistory.slice(-10);
       const contents = recentHistory.map(msg => ({
+        role: msg.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: msg.content }]
       }));
 
@@ -967,9 +958,9 @@ What would you like to explore today?`;
       }
       
       // Re-enable input
-      input.disabled = false;
+      messageInput.disabled = false;
       document.getElementById('send-btn').disabled = false;
-      input.focus();
+      messageInput.focus();
     }
 
     function clearChat() {
