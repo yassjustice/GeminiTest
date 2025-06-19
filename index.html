@@ -649,10 +649,22 @@
         </div>
       </div>
     </div>
-  </div>
-  <script>
+  </div>  <script>
     // Configuration
     let apiKey = null;
+    
+    // Load API key from server
+    async function loadConfig() {
+      try {
+        const response = await fetch('/api/config');
+        const config = await response.json();
+        apiKey = config.apiKey;
+      } catch (error) {
+        console.error('Failed to load config:', error);
+        // Fallback to localStorage or prompt
+        apiKey = localStorage.getItem('GOOGLE_AI_API_KEY');
+      }
+    }
     
     let currentModel = null;
     let currentModelName = '';
@@ -678,16 +690,27 @@
           } catch (err) {}
         }
         return hljs.highlightAuto(code).value;
-      },
-      breaks: true,
+      },      breaks: true,
       gfm: true
-    });    function selectModel(modelName, displayName) {
+    });
+
+    function selectModel(modelName, displayName) {
       // Ensure API key is available
       if (!apiKey) {
-        apiKey = Config.getApiKey();
+        // Try localStorage fallback
+        apiKey = localStorage.getItem('GOOGLE_AI_API_KEY');
         if (!apiKey) {
-          alert('API key is required to use the chat. Please provide a valid Google AI API key.');
-          return;
+          apiKey = prompt(
+            'Please enter your Google AI API Key:\n\n' +
+            'You can get one from: https://makersuite.google.com/app/apikey\n\n' +
+            'Your key will be stored locally.'
+          );
+          if (apiKey) {
+            localStorage.setItem('GOOGLE_AI_API_KEY', apiKey);
+          } else {
+            alert('API key is required to use the chat.');
+            return;
+          }
         }
       }
       
@@ -863,11 +886,11 @@ What would you like to explore today?`;
       document.getElementById('typing-indicator').style.display = 'flex';
       const chatMessages = document.getElementById('chat-messages');
       chatMessages.scrollTop = chatMessages.scrollHeight;
+    }    function hideTyping() {
+      document.getElementById('typing-indicator').style.display = 'none';
     }
 
-    function hideTyping() {
-      document.getElementById('typing-indicator').style.display = 'none';
-    }    async function sendMessage() {
+    async function sendMessage() {
       const input = document.getElementById('chat-input');
       const message = input.value.trim();
       
@@ -875,9 +898,9 @@ What would you like to explore today?`;
       
       // Ensure API key is available
       if (!apiKey) {
-        apiKey = Config.getApiKey();
+        apiKey = localStorage.getItem('GOOGLE_AI_API_KEY');
         if (!apiKey) {
-          addMessage('ai', '❌ **Error**: API key is required. Please click the 🔑 API Key button to configure your key.');
+          addMessage('ai', '❌ **Error**: API key is required. Please select a model first to configure your key.');
           return;
         }
       }
@@ -994,9 +1017,9 @@ Ready for a fresh conversation with ${currentModelName}. What would you like to 
     }    async function listModels() {
       // Ensure API key is available
       if (!apiKey) {
-        apiKey = Config.getApiKey();
+        apiKey = localStorage.getItem('GOOGLE_AI_API_KEY');
         if (!apiKey) {
-          addMessage('ai', '❌ **Error**: API key is required to list models. Please click the 🔑 API Key button to configure your key.');
+          addMessage('ai', '❌ **Error**: API key is required to list models. Please select a model first to configure your key.');
           return;
         }
       }
@@ -1083,8 +1106,8 @@ Ready for a fresh conversation with ${currentModelName}. What would you like to 
       }
     }    // Handle Enter key for sending messages
     document.addEventListener('DOMContentLoaded', function() {
-      // Initialize API key
-      apiKey = Config.getApiKey();
+      // Initialize API key from server
+      loadConfig();
       
       const chatInput = document.getElementById('chat-input');
       chatInput.addEventListener('keydown', function(e) {
